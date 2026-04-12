@@ -27,7 +27,9 @@ dependencies = [
     "stackstac (>=0.5.1,<0.6.0)",
     "planetary-computer (>=1.0.0,<2.0.0)",
     "rioxarray (<0.16.0)",
-    "torch (>=2.10.0,<3.0.0)"
+    "torch (>=2.10.0,<3.0.0)",
+    "xarray (>=2026.2.0,<2027.0.0)",
+    "pykrige (>=1.7.3,<2.0.0)"
 ]
 
 
