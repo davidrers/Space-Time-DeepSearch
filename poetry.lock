@@ -3157,6 +3157,58 @@ files = [
 windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
+name = "pykrige"
+version = "1.7.3"
+description = "Kriging Toolkit for Python."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "pykrige-1.7.3-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:8170c257dde195343652e9f7ffb74b7a6f660fc33bdf4fe84f0d16e7a23d1101"},
+    {file = "pykrige-1.7.3-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:aa0dd01493d19c094337a4618cbec898a323fd91ee1b9f085ba29a6a3e7e1a1c"},
+    {file = "pykrige-1.7.3-cp310-cp310-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:b6cae2276fa11c90134da308a90890ab6a863ff3eab3af2cf9621164ce106d68"},
+    {file = "pykrige-1.7.3-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:f7037ac9b343e8377ee47326ed1eb2b4c1254cb50d9b0cb3508ff6c6c95019eb"},
+    {file = "pykrige-1.7.3-cp310-cp310-win_amd64.whl", hash = "sha256:0ef36a3f8eec3c69a9e7c0b599431d41fa2a831e6fbfdb469d81a8815857cb77"},
+    {file = "pykrige-1.7.3-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:431c1950ee4dce42a2b0ca37e46385b3f5d77ba98939f05971d11f3c5d0373e2"},
+    {file = "pykrige-1.7.3-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:31faf8c5f47a9cd18563f1752db290e6d73eda6b235a280ce728bdf76984ac5b"},
+    {file = "pykrige-1.7.3-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:9ee92befe9e24e6796d4b99be199bbfbcb42fa1346e17297c0234709ccd09d6f"},
+    {file = "pykrige-1.7.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:6786b08f7433b2d092fd59b47fe4f36e47a7a3561750ccf791b0010ae82eaabb"},
+    {file = "pykrige-1.7.3-cp311-cp311-win_amd64.whl", hash = "sha256:dffd4cdeefb60f5213917fa4d0446c09d93ec81824e1e0d0291cda6e5a14dbe8"},
+    {file = "pykrige-1.7.3-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:fcede7f5b7d7396f760827f748d64b64ce0ead97b00f975e4a66033e04c257ff"},
+    {file = "pykrige-1.7.3-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:bb2d1f5cd0e2841d3c7319d53d8db1692a0ad78f564299896c977dd20989f266"},
+    {file = "pykrige-1.7.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:6d9ee6cd66cafa97c749612d4b9067b8a869515abcb3e31ebac0fbaad7ede81f"},
+    {file = "pykrige-1.7.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:160234511fbdbd9f3f8a75fa5a5b7d285fdd0d944fc2f8a14526a6a736e51359"},
+    {file = "pykrige-1.7.3-cp312-cp312-win_amd64.whl", hash = "sha256:5e3ae5833e392470845ba58a914fc22b5df80f3fb631c8908668e8d269242cf7"},
+    {file = "pykrige-1.7.3-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:d1b4ec8c9679a60838fa46f99c327eb6e9a0ca3cd31919f8296a38734d537df2"},
+    {file = "pykrige-1.7.3-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:fab9fb891a2a18aa6efcdbefd40b807b1880975a89d3fbd975eb499f1ccde4c4"},
+    {file = "pykrige-1.7.3-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:b692a65d3892b3436006341a054bcee9b6690e00337aeefc7d5d5f6990148591"},
+    {file = "pykrige-1.7.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:d08ba9574009461003c85d5e27408f0a88a38e4b33b1ec229bc809f815ea0a21"},
+    {file = "pykrige-1.7.3-cp313-cp313-win_amd64.whl", hash = "sha256:1c48813d7ef4e50538d1942ffdf219b8e2b99a5df5dbc4893d9808ac448d13c7"},
+    {file = "pykrige-1.7.3-cp314-cp314-macosx_10_15_x86_64.whl", hash = "sha256:02741fdb9bb97911e0aca15c5d0155c4ea9edceba279d7ec056908e76d30bf3e"},
+    {file = "pykrige-1.7.3-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:0d0b9f2e3650469902591cda414d3aa35f52575d711d9f55750277d49fe3c435"},
+    {file = "pykrige-1.7.3-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:bff7871837481deffd06d4356866c398b8219eaaea8877c510d66065c8e8db34"},
+    {file = "pykrige-1.7.3-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:541782cf2f2e843619a314cc0caebac2fbba635e07b6a4f333ffe1b1b91852f6"},
+    {file = "pykrige-1.7.3-cp314-cp314-win_amd64.whl", hash = "sha256:2e67f055c26edd844384a1e627e3528b1180e13211f8a7aab56c84137c8159da"},
+    {file = "pykrige-1.7.3-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:79bbbf98ca7f71bc7885c9fd179c155f64329476a3b901499f6bb110b67e2a4c"},
+    {file = "pykrige-1.7.3-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:17fa0130517296a5da9a71b2be900582a5c4979a3502450aca39a5536dcfc5be"},
+    {file = "pykrige-1.7.3-cp39-cp39-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:d09b9b4fbc9b0e5d23c00a70b98f543d48f0456da645bb9e649f671739bbc5d0"},
+    {file = "pykrige-1.7.3-cp39-cp39-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:17af3b3c738495d6f6d4f731d74bcffc6b07adf244ddd7f1d8d58c3ed9902264"},
+    {file = "pykrige-1.7.3-cp39-cp39-win_amd64.whl", hash = "sha256:78270ed17d73eb1cd08fd47e2ad8d62f0988ac1f8838300bd9340e3437c81e6f"},
+    {file = "pykrige-1.7.3.tar.gz", hash = "sha256:4f06623f9a2c5c5f637d802432ea7843af1b8b5aed33628466224691c52f177c"},
+]
+
+[package.dependencies]
+numpy = ">=1.20.0"
+scipy = ">=1.5.4,<2"
+
+[package.extras]
+doc = ["gstools (>=1.4,<2)", "m2r2 (>=0.2.8)", "matplotlib (>=3)", "numpydoc (>=1.1)", "pillow", "scikit-learn (>=0.19)", "sphinx (>=7)", "sphinx-gallery (>=0.8)", "sphinx-rtd-theme (>=2)"]
+lint = ["black (>=23,<24)", "cython-lint", "isort[colors]", "pylint"]
+plot = ["matplotlib (>=3,<4)"]
+sklearn = ["scikit-learn (>=0.19)"]
+test = ["gstools (>=1.4,<2)", "pytest-cov (>=3)", "scikit-learn (>=0.19)"]
+
+[[package]]
 name = "pymdown-extensions"
 version = "10.21"
 description = "Extension pack for Python Markdown."
@@ -4605,4 +4657,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.13"
-content-hash = "0fe10af5d78d0e807875e6beb427c5802471826e5c8d1db6c8ed57bed2aa1455"
+content-hash = "a130121147abdce9df628080eb71ad1985be8f957da806a0a6db7009d7b48573"
