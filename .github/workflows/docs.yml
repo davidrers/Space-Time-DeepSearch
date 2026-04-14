@@ -2,7 +2,7 @@ name: Deploy API Docs
 
 on:
   push:
-    branches: [main, LandTrend-python]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
