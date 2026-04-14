@@ -73,8 +73,13 @@ class SpaceTimeDeepSearch:
         resolution: int = 10,
         mask_clouds: bool = False,
         composite_period: str | None = None,
+        composite_start: str | None = None,
+        composite_end: str | None = None,
         add_ndvi: bool = False,
         add_ndbi: bool = False,
+        add_nbr: bool = False,
+        collection: str = "sentinel-2-l2a",
+        chunksize: int = 2048,
         **kwargs,
     ) -> xr.DataArray:
         """
@@ -89,8 +94,16 @@ class SpaceTimeDeepSearch:
             resolution: Output resolution in metres.
             mask_clouds: Replace cloudy pixels with NaN.
             composite_period: Temporal compositing period (e.g. "1M", "1Y").
+            composite_start: Start of annual date window for compositing
+                in "MM-DD" format (e.g. "06-01"). Only scenes within this
+                window are included in each composite.
+            composite_end: End of annual date window for compositing
+                in "MM-DD" format (e.g. "10-31").
             add_ndvi: Append NDVI as an extra band.
             add_ndbi: Append NDBI as an extra band.
+            add_nbr: Append NBR as an extra band.
+            collection: STAC collection ID.
+            chunksize: Dask chunk size.
 
         Returns:
             xr.DataArray with dims ``(time, band, y, x)``.
@@ -106,8 +119,13 @@ class SpaceTimeDeepSearch:
             resolution=resolution,
             mask_clouds=mask_clouds,
             composite_period=composite_period,
+            composite_start=composite_start,
+            composite_end=composite_end,
             add_ndvi=add_ndvi,
             add_ndbi=add_ndbi,
+            add_nbr=add_nbr,
+            collection=collection,
+            chunksize=chunksize,
             **kwargs,
         )
         self._data["sentinel2"] = data
@@ -124,12 +142,17 @@ class SpaceTimeDeepSearch:
         mask_clouds: bool = False,
         mask_snow: bool = False,
         composite_period: str | None = None,
+        composite_start: str | None = None,
+        composite_end: str | None = None,
         add_ndvi: bool = False,
         add_ndbi: bool = False,
+        add_nbr: bool = False,
         missions: list[str] | None = None,
         exclude_slc_off: bool = False,
         apply_srf_correction: bool = False,
         apply_scale_factors: bool = True,
+        collection: str = "landsat-c2-l2",
+        chunksize: int = 2048,
         **kwargs,
     ) -> xr.DataArray:
         """
@@ -149,13 +172,21 @@ class SpaceTimeDeepSearch:
             mask_clouds: Replace cloudy pixels with NaN.
             mask_snow: Also mask snow/ice pixels (requires mask_clouds).
             composite_period: Temporal compositing period (e.g. "1M", "1Y").
+            composite_start: Start of annual date window for compositing
+                in "MM-DD" format (e.g. "06-01"). Only scenes within this
+                window are included in each composite.
+            composite_end: End of annual date window for compositing
+                in "MM-DD" format (e.g. "10-31").
             add_ndvi: Append NDVI as an extra band.
             add_ndbi: Append NDBI as an extra band.
+            add_nbr: Append NBR as an extra band.
             missions: Filter to specific platforms (e.g. ["landsat-8"]).
             exclude_slc_off: Drop Landsat 7 scenes after SLC failure (2003).
             apply_srf_correction: Apply Roy et al. (2016) TM/ETM+ → OLI
                 spectral bandpass adjustment.
             apply_scale_factors: Convert DN to surface reflectance.
+            collection: STAC collection ID.
+            chunksize: Dask chunk size.
 
         Returns:
             xr.DataArray with dims ``(time, band, y, x)``.
@@ -172,12 +203,17 @@ class SpaceTimeDeepSearch:
             mask_clouds=mask_clouds,
             mask_snow=mask_snow,
             composite_period=composite_period,
+            composite_start=composite_start,
+            composite_end=composite_end,
             add_ndvi=add_ndvi,
             add_ndbi=add_ndbi,
+            add_nbr=add_nbr,
             missions=missions,
             exclude_slc_off=exclude_slc_off,
             apply_srf_correction=apply_srf_correction,
             apply_scale_factors=apply_scale_factors,
+            collection=collection,
+            chunksize=chunksize,
             **kwargs,
         )
         self._data["landsat"] = data
@@ -190,7 +226,11 @@ class SpaceTimeDeepSearch:
         layer: str = "LST_Day_1km",
         convert_to_celsius: bool = True,
         composite_period: str | None = "1W",
+        composite_start: str | None = None,
+        composite_end: str | None = None,
         resolution: int = 1000,
+        collection: str = "modis-11A1-061",
+        chunksize: int = 2048,
         **kwargs,
     ) -> xr.DataArray:
         """
@@ -202,7 +242,13 @@ class SpaceTimeDeepSearch:
             layer: MODIS asset name.
             convert_to_celsius: Convert Kelvin to Celsius.
             composite_period: Temporal compositing period.
+            composite_start: Start of annual date window for compositing
+                in "MM-DD" format (e.g. "06-01").
+            composite_end: End of annual date window for compositing
+                in "MM-DD" format (e.g. "10-31").
             resolution: Output resolution in metres.
+            collection: STAC collection ID.
+            chunksize: Dask chunk size.
 
         Returns:
             xr.DataArray with dims ``(time, band, y, x)``.
@@ -215,7 +261,11 @@ class SpaceTimeDeepSearch:
             layer=layer,
             convert_to_celsius=convert_to_celsius,
             composite_period=composite_period,
+            composite_start=composite_start,
+            composite_end=composite_end,
             resolution=resolution,
+            collection=collection,
+            chunksize=chunksize,
             **kwargs,
         )
         self._data["modis"] = data
@@ -307,6 +357,81 @@ class SpaceTimeDeepSearch:
     ):
         """Plot source + fitted trajectory for one pixel (wraps :func:`plot_pixel_trajectory`)."""
         return plot_pixel_trajectory(lt_result, y=y, x=x, **kwargs)
+
+    def inspect_landtrendr(
+        self,
+        lt_result: xr.Dataset | None = None,
+        change_ds: xr.Dataset | None = None,
+        change_type: str = "greatest",
+        delta_filter: str = "loss",
+        **kwargs,
+    ):
+        """Open an interactive LandTrendr change map inspector.
+
+        If ``change_ds`` is not provided, it is computed from ``lt_result``
+        using the given ``change_type`` and ``delta_filter``.
+
+        Args:
+            lt_result: Dataset from :meth:`run_landtrendr`. If None, uses
+                the last stored result.
+            change_ds: Dataset from :meth:`extract_change_map`. If None,
+                computed automatically.
+            change_type: Passed to ``extract_change_map`` if computing.
+            delta_filter: Passed to ``extract_change_map`` if computing.
+            **kwargs: Forwarded to ``LandTrendrInspector``
+                (cmaps, map_width, map_height).
+
+        Returns:
+            LandTrendrInspector instance.
+        """
+        if lt_result is None:
+            if "lt_result" not in self._data:
+                raise ValueError(
+                    "No LandTrendr result available. "
+                    "Run run_landtrendr() first."
+                )
+            lt_result = self._data["lt_result"]
+        if change_ds is None:
+            change_ds = extract_change_map(
+                lt_result, change_type=change_type, delta_filter=delta_filter,
+            )
+
+        from .temporal._landtrendr_interactive import inspect_landtrendr as _inspect
+        return _inspect(lt_result, change_ds, **kwargs)
+
+    def save_change_map_geotiff(
+        self,
+        change_ds: xr.Dataset | None = None,
+        output_dir: str = ".",
+        variables: list[str] | None = None,
+        crs: str | None = None,
+        **kwargs,
+    ) -> list[str]:
+        """Export change map variables as GeoTIFF files.
+
+        Args:
+            change_ds: Dataset from :meth:`extract_change_map`. If None,
+                computes from stored LandTrendr result.
+            output_dir: Directory to write files into.
+            variables: Variables to export. Defaults to all.
+            crs: CRS string (e.g. ``"EPSG:32620"``).
+            **kwargs: Forwarded to ``extract_change_map`` if computing
+                (change_type, delta_filter).
+
+        Returns:
+            List of written file paths.
+        """
+        if change_ds is None:
+            if "lt_result" not in self._data:
+                raise ValueError(
+                    "No LandTrendr result available. "
+                    "Run run_landtrendr() first."
+                )
+            change_ds = extract_change_map(self._data["lt_result"], **kwargs)
+
+        from .temporal._landtrendr_interactive import save_change_map_geotiff as _save
+        return _save(change_ds, output_dir=output_dir,
+                     variables=variables, crs=crs)
 
     # ------------------------------------------------------------------
     # Animation / Timelapse

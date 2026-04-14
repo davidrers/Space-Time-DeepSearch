@@ -24,7 +24,7 @@ def _despike(values, spike_threshold):
         values: 1-D array of spectral values (modified in place).
         spike_threshold: Controls filtering severity. 1.0 = no filtering,
             lower values = more aggressive. A point is flagged as a spike if
-            its deviation relative to the series range exceeds (1 - spike_threshold).
+            its deviation relative to the series range exceeds spike_threshold.
     """
     if spike_threshold >= 1.0:
         return values
@@ -34,7 +34,7 @@ def _despike(values, spike_threshold):
     if val_range == 0:
         return values
 
-    threshold = (1.0 - spike_threshold) * val_range
+    threshold = spike_threshold * val_range
 
     for i in range(1, len(values) - 1):
         left_delta = values[i] - values[i - 1]
@@ -191,8 +191,10 @@ def _apply_recovery_constraints(years, fitted, vertex_indices,
     fitted = fitted.copy()
     vertex_indices = list(vertex_indices)
     changed = True
+    max_iterations = len(vertex_indices) * 2 + 10  # guard against infinite loops
 
-    while changed:
+    while changed and max_iterations > 0:
+        max_iterations -= 1
         changed = False
         i = 0
         while i < len(vertex_indices) - 1:
@@ -355,7 +357,7 @@ def landtrendr_pixel(years, values, max_segments=6, spike_threshold=0.9,
     """Run LandTrendr temporal segmentation on a single pixel time series.
 
     Args:
-        years: 1-D array of integer years, sorted ascending.
+        years: 1-D array of years (integer or fractional), sorted ascending.
         values: 1-D array of float spectral values corresponding to years.
         max_segments: Maximum number of segments (vertices - 1).
         spike_threshold: Spike removal sensitivity (0-1). Higher = less filtering.
@@ -375,7 +377,7 @@ def landtrendr_pixel(years, values, max_segments=6, spike_threshold=0.9,
         If the pixel has insufficient valid observations, returns
         (all-NaN array, all-False array, NaN).
     """
-    years = np.asarray(years, dtype=np.int32)
+    years = np.asarray(years, dtype=np.float64)
     values = np.asarray(values, dtype=np.float64)
     n_total = len(years)
 
@@ -429,8 +431,8 @@ def landtrendr_pixel(years, values, max_segments=6, spike_threshold=0.9,
     # Mark vertex positions in the original time axis
     for vi in best_vertices:
         original_year = valid_years[vi]
-        orig_idx = np.searchsorted(years, original_year)
-        if orig_idx < n_total and years[orig_idx] == original_year:
+        orig_idx = np.argmin(np.abs(years - original_year))
+        if abs(years[orig_idx] - original_year) < 1e-9:
             vertex_full[orig_idx] = True
 
     return fitted_full, vertex_full, best_rmse
@@ -471,14 +473,14 @@ def extract_change_pixel(fitted_values, is_vertex, rmse, years,
     for i in range(len(vertex_indices) - 1):
         start_idx = vertex_indices[i]
         end_idx = vertex_indices[i + 1]
-        start_year = int(years[start_idx])
-        end_year = int(years[end_idx])
+        start_year = float(years[start_idx])
+        end_year = float(years[end_idx])
         start_val = fitted_values[start_idx]
         end_val = fitted_values[end_idx]
         delta = end_val - start_val
         duration = end_year - start_year
 
-        if duration == 0:
+        if abs(duration) < 1e-9:
             continue
 
         rate = delta / duration

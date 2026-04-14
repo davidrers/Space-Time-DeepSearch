@@ -14,10 +14,29 @@ Usage:
 
 import dataclasses
 import numpy as np
+import pandas as pd
 import xarray as xr
 from tqdm.auto import tqdm
 
 from ._landtrendr_core import landtrendr_pixel, extract_change_pixel
+
+
+def _datetime_to_fractional_year(dt64_arr):
+    """Convert a datetime64 array to fractional years.
+
+    E.g. ``2023-07-02`` → approximately ``2023.5``.
+
+    Args:
+        dt64_arr: numpy array of datetime64 values.
+
+    Returns:
+        1-D numpy float64 array of fractional years.
+    """
+    ts = pd.DatetimeIndex(dt64_arr)
+    year_start = pd.to_datetime(ts.year, format="%Y")
+    year_end = pd.to_datetime(ts.year + 1, format="%Y")
+    fraction = (ts - year_start) / (year_end - year_start)
+    return (ts.year + fraction).values.astype(np.float64)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -79,9 +98,9 @@ def run_landtrendr(spectral_index, params=None, progress=True):
 
     Args:
         spectral_index: xarray.DataArray with dims ``(time, y, x)``.
-            Must contain annual observations (one value per year). The
-            ``time`` coordinate can be datetime64 (years extracted
-            automatically) or integer years.
+            Can contain annual or sub-annual observations. The ``time``
+            coordinate can be datetime64 (converted to fractional years
+            automatically) or numeric years (integer or float).
         params: LandTrendrParams instance. Defaults to LandTrendrParams()
             with GEE-matching defaults.
         progress: If True (default), display a progress bar tracking
@@ -97,11 +116,11 @@ def run_landtrendr(spectral_index, params=None, progress=True):
     if params is None:
         params = LandTrendrParams()
 
-    # Extract integer years from time coordinate
+    # Extract years from time coordinate (fractional for sub-annual data)
     if np.issubdtype(spectral_index.time.dtype, np.datetime64):
-        years = spectral_index.time.dt.year.values.astype(np.int32)
+        years = _datetime_to_fractional_year(spectral_index.time.values)
     else:
-        years = np.asarray(spectral_index.time.values, dtype=np.int32)
+        years = np.asarray(spectral_index.time.values, dtype=np.float64)
 
     if len(years) < params.min_observations_needed:
         raise ValueError(
@@ -184,9 +203,9 @@ def extract_change_map(lt_result, change_type="greatest", delta_filter="loss"):
     rmse = lt_result["rmse"]
 
     if np.issubdtype(fitted.time.dtype, np.datetime64):
-        years_arr = fitted.time.dt.year.values.astype(np.int32)
+        years_arr = _datetime_to_fractional_year(fitted.time.values)
     else:
-        years_arr = np.asarray(fitted.time.values, dtype=np.int32)
+        years_arr = np.asarray(fitted.time.values, dtype=np.float64)
 
     def _change_pixel(fitted_1d, vertex_1d, rmse_scalar):
         return extract_change_pixel(

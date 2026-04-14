@@ -54,10 +54,13 @@ def get_sentinel2_imagery(
     min_coverage: int = 0,
     mask_clouds: bool = False,
     composite_period: str | None = None,
+    composite_start: str | None = None,
+    composite_end: str | None = None,
     collection: str = "sentinel-2-l2a",
     chunksize: int = 2048,
     add_ndvi: bool = False,
     add_ndbi: bool = False,
+    add_nbr: bool = False,
 ):
     """
     Fetch Sentinel-2 imagery for a given area of interest and time range.
@@ -87,6 +90,13 @@ def get_sentinel2_imagery(
         composite_period (str | None, optional): Temporal period for compositing (e.g., "1W", "1M").
             Defaults to None (no compositing).
             Compositing takes the median over the period to fill cloud gaps.
+        composite_start (str | None, optional): Start of annual date window
+            for compositing in "MM-DD" format (e.g., "06-10"). Only scenes
+            within this window are included in each composite. Requires
+            composite_period. Defaults to None.
+        composite_end (str | None, optional): End of annual date window
+            for compositing in "MM-DD" format (e.g., "09-20"). Defaults
+            to None.
         collection (str, optional): STAC collection ID. 
             Defaults to "sentinel-2-l2a".
         chunksize (int, optional): Dask chunk size for the output array.
@@ -97,7 +107,10 @@ def get_sentinel2_imagery(
         add_ndbi (bool, optional): If True, calculate NDBI (Normalized Difference Built-up Index) and add it as a new band.
             Requires B11 (SWIR) and B08 (NIR) to be present or will automatically load them.
             Defaults to False.
-            
+        add_nbr (bool, optional): If True, calculate NBR (Normalized Burn Ratio) and add it as a new band.
+            Requires B08 (NIR) and B12 (SWIR 2.2μm) to be present or will automatically load them.
+            Defaults to False.
+
     Returns:
         xarray.DataArray: 4D DataArray with dimensions (time, band, y, x).
             - time: Acquisition timestamps
@@ -194,7 +207,14 @@ def get_sentinel2_imagery(
             assets_to_load.append("B11")
         if "B08" not in assets_to_load:
             assets_to_load.append("B08")
-    
+
+    # Ensure bands for NBR are loaded if requested
+    if add_nbr:
+        if "B08" not in assets_to_load:
+            assets_to_load.append("B08")
+        if "B12" not in assets_to_load:
+            assets_to_load.append("B12")
+
     # Build the data cube using stackstac
     cube = stackstac.stack(
         items,
@@ -348,6 +368,14 @@ def get_sentinel2_imagery(
              return (swir - nir) / (swir + nir)
         cube_filtered = _add_index(cube_filtered, "NDBI", calc_ndbi)
 
+    # --- NBR Calculation ---
+    if add_nbr:
+        def calc_nbr(c):
+             nir = c.sel(band="B08", drop=True)
+             swir = c.sel(band="B12", drop=True)
+             return (nir - swir) / (nir + swir)
+        cube_filtered = _add_index(cube_filtered, "NBR", calc_nbr)
+
     # Drop SCL if it wasn't requested by user
     if "SCL" not in bands:
         # We might have added B04/B08 for NDVI even if not requested
@@ -360,7 +388,10 @@ def get_sentinel2_imagery(
         if add_ndbi and "NDBI" in cube_filtered.band.values:
             if "NDBI" not in bands_to_keep:
                 bands_to_keep.append("NDBI")
-        
+        if add_nbr and "NBR" in cube_filtered.band.values:
+            if "NBR" not in bands_to_keep:
+                bands_to_keep.append("NBR")
+
         # Select only the desired bands
         cube_filtered = cube_filtered.sel(band=bands_to_keep)
         
@@ -368,8 +399,20 @@ def get_sentinel2_imagery(
 
     # --- Temporal Compositing ---
     if composite_period:
-        # Use median for Sentinel-2 to robustly handle clouds/shadows
-        # Requires a valid DatetimeIndex (which stackstac provides)
+        if composite_start and composite_end:
+            start_month, start_day = map(int, composite_start.split("-"))
+            end_month, end_day = map(int, composite_end.split("-"))
+            month = cube_filtered.time.dt.month
+            day = cube_filtered.time.dt.day
+            md = month * 100 + day
+            in_window = (md >= start_month * 100 + start_day) & (
+                md <= end_month * 100 + end_day
+            )
+            cube_filtered = cube_filtered.sel(time=in_window)
+            print(
+                f"Filtered to {len(cube_filtered.time)} scenes within "
+                f"{composite_start} to {composite_end}"
+            )
         print(f"Compositing data over {composite_period} using median...")
         cube_filtered = cube_filtered.resample(time=composite_period).median(dim="time", skipna=True)
 
@@ -383,7 +426,8 @@ def get_sentinel2_imagery(
     cube_filtered.attrs["mask_clouds"] = str(mask_clouds)
     cube_filtered.attrs["ndvi_added"] = str(add_ndvi)
     cube_filtered.attrs["ndbi_added"] = str(add_ndbi)
-    
+    cube_filtered.attrs["nbr_added"] = str(add_nbr)
+
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         with dask.diagnostics.ProgressBar():
