@@ -1,0 +1,34 @@
+# Markdown files
+*.md
+# But keep README and docs
+!README.md
+!docs/**/*.md
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Cache
+notebooks/cache/
+src/space_time_deepsearch/io/cache/

@@ -42,6 +42,8 @@ def get_modis_temperature(
     layer: str = "LST_Day_1km",
     convert_to_celsius: bool = True,
     composite_period: str | None = "1W",
+    composite_start: str | None = None,
+    composite_end: str | None = None,
     resolution: int = 1000, # Approx 1km for MODIS
     chunksize: int = 2048,
 ):
@@ -59,6 +61,13 @@ def get_modis_temperature(
         composite_period (str | None, optional): Temporal period for compositing (e.g., "1W", "1M").
             Defaults to "1W". If None, returns daily data.
             Compositing takes the mean over the period to fill cloud gaps.
+        composite_start (str | None, optional): Start of annual date window
+            for compositing in "MM-DD" format (e.g., "06-10"). Only scenes
+            within this window are included in each composite. Requires
+            composite_period. Defaults to None.
+        composite_end (str | None, optional): End of annual date window
+            for compositing in "MM-DD" format (e.g., "09-20"). Defaults
+            to None.
         resolution (int, optional): Output resolution in meters. Defaults to 1000.
         chunksize (int, optional): Dask chunk size. Defaults to 2048.
 
@@ -176,8 +185,20 @@ def get_modis_temperature(
     # Temporal Compositing (Lazy)
     # Default is "1W" to fill gaps
     if composite_period:
-        # We assume the user wants the mean temperature over the period.
-        # Resample requires a valid datetime index, which we ensured above.
+        if composite_start and composite_end:
+            start_month, start_day = map(int, composite_start.split("-"))
+            end_month, end_day = map(int, composite_end.split("-"))
+            month = cube.time.dt.month
+            day = cube.time.dt.day
+            md = month * 100 + day
+            in_window = (md >= start_month * 100 + start_day) & (
+                md <= end_month * 100 + end_day
+            )
+            cube = cube.sel(time=in_window)
+            print(
+                f"Filtered to {len(cube.time)} scenes within "
+                f"{composite_start} to {composite_end}"
+            )
         cube = cube.resample(time=composite_period).mean(dim="time", skipna=True)
 
     # Attributes

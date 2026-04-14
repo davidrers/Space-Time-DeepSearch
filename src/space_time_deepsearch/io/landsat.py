@@ -129,10 +129,13 @@ def get_landsat_imagery(
     mask_clouds: bool = False,
     mask_snow: bool = False,
     composite_period: str | None = None,
+    composite_start: str | None = None,
+    composite_end: str | None = None,
     collection: str = "landsat-c2-l2",
     chunksize: int = 2048,
     add_ndvi: bool = False,
     add_ndbi: bool = False,
+    add_nbr: bool = False,
     missions: list[str] | None = None,
     exclude_slc_off: bool = False,
     apply_srf_correction: bool = False,
@@ -172,6 +175,13 @@ def get_landsat_imagery(
             Only effective when mask_clouds is True. Defaults to False.
         composite_period (str | None, optional): Temporal period for
             compositing (e.g., "1M", "1Y"). Defaults to None.
+        composite_start (str | None, optional): Start of annual date window
+            for compositing in "MM-DD" format (e.g., "06-10"). Only scenes
+            within this window are included in each composite. Requires
+            composite_period. Defaults to None.
+        composite_end (str | None, optional): End of annual date window
+            for compositing in "MM-DD" format (e.g., "09-20"). Defaults
+            to None.
         collection (str, optional): STAC collection ID.
             Defaults to "landsat-c2-l2".
         chunksize (int, optional): Dask chunk size. Defaults to 2048.
@@ -179,6 +189,9 @@ def get_landsat_imagery(
             Requires red and nir08. Defaults to False.
         add_ndbi (bool, optional): If True, calculate NDBI and add as band.
             Requires swir16 and nir08. Defaults to False.
+        add_nbr (bool, optional): If True, calculate NBR (Normalized Burn
+            Ratio) and add as band. Requires nir08 and swir22.
+            Defaults to False.
         missions (list, optional): Filter to specific platforms, e.g.
             ["landsat-8", "landsat-9"]. Defaults to None (all missions).
         exclude_slc_off (bool, optional): If True, drop Landsat 7 scenes
@@ -303,6 +316,12 @@ def get_landsat_imagery(
             assets_to_load.append("swir16")
         if "nir08" not in assets_to_load:
             assets_to_load.append("nir08")
+
+    if add_nbr:
+        if "nir08" not in assets_to_load:
+            assets_to_load.append("nir08")
+        if "swir22" not in assets_to_load:
+            assets_to_load.append("swir22")
 
     # --- Build data cube ---
     # rescale=False: Landsat C2 L2 items carry raster:bands scale/offset
@@ -476,6 +495,15 @@ def get_landsat_imagery(
 
         cube_filtered = _add_index(cube_filtered, "NDBI", calc_ndbi)
 
+    # --- NBR ---
+    if add_nbr:
+        def calc_nbr(c):
+            nir = c.sel(band="nir08", drop=True)
+            swir = c.sel(band="swir22", drop=True)
+            return (nir - swir) / (nir + swir)
+
+        cube_filtered = _add_index(cube_filtered, "NBR", calc_nbr)
+
     # --- Drop qa_pixel and select requested bands ---
     if "qa_pixel" not in bands:
         bands_to_keep = list(bands)
@@ -485,10 +513,27 @@ def get_landsat_imagery(
         if add_ndbi and "NDBI" in cube_filtered.band.values:
             if "NDBI" not in bands_to_keep:
                 bands_to_keep.append("NDBI")
+        if add_nbr and "NBR" in cube_filtered.band.values:
+            if "NBR" not in bands_to_keep:
+                bands_to_keep.append("NBR")
         cube_filtered = cube_filtered.sel(band=bands_to_keep)
 
     # --- Temporal Compositing ---
     if composite_period:
+        if composite_start and composite_end:
+            start_month, start_day = map(int, composite_start.split("-"))
+            end_month, end_day = map(int, composite_end.split("-"))
+            month = cube_filtered.time.dt.month
+            day = cube_filtered.time.dt.day
+            md = month * 100 + day
+            in_window = (md >= start_month * 100 + start_day) & (
+                md <= end_month * 100 + end_day
+            )
+            cube_filtered = cube_filtered.sel(time=in_window)
+            print(
+                f"Filtered to {len(cube_filtered.time)} scenes within "
+                f"{composite_start} to {composite_end}"
+            )
         print(f"Compositing data over {composite_period} using median...")
         cube_filtered = cube_filtered.resample(time=composite_period).median(
             dim="time", skipna=True
@@ -504,6 +549,7 @@ def get_landsat_imagery(
     cube_filtered.attrs["mask_clouds"] = str(mask_clouds)
     cube_filtered.attrs["ndvi_added"] = str(add_ndvi)
     cube_filtered.attrs["ndbi_added"] = str(add_ndbi)
+    cube_filtered.attrs["nbr_added"] = str(add_nbr)
     cube_filtered.attrs["scale_factors_applied"] = str(apply_scale_factors)
     cube_filtered.attrs["srf_correction_applied"] = str(apply_srf_correction)
 

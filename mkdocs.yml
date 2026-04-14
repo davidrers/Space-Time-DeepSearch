@@ -1,0 +1,64 @@
+site_name: Space-Time DeepSearch
+site_description: Python geospatial library for satellite imagery retrieval and temporal analysis
+repo_url: https://github.com/davidrers/Space-Time-DeepSearch
+repo_name: davidrers/Space-Time-DeepSearch
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - API Reference:
+      - Core: api/core.md
+      - IO:
+          - Sentinel-2: api/io/sentinel2.md
+          - Landsat: api/io/landsat.md
+          - MODIS: api/io/modis.md
+          - OpenStreetMap: api/io/osm.md
+          - Population: api/io/population.md
+      - Temporal:
+          - LandTrendr: api/temporal/landtrendr.md
+          - LandTrendr Core: api/temporal/landtrendr_core.md
+          - LandTrendr Visualization: api/temporal/landtrendr_viz.md
+          - LandTrendr Interactive: api/temporal/landtrendr_interactive.md
+      - Visualization:
+          - Animation: api/vis/animation.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: true
+            show_root_heading: true
+            heading_level: 2
+            docstring_style: google
+            show_signature_annotations: true
+            separate_signature: true
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - admonition
+  - pymdownx.details

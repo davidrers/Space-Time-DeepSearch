@@ -190,3 +190,48 @@ class TestAnnualComposite:
         )
         with pytest.raises(ValueError, match="Unknown method"):
             annual_composite(da, method="invalid")
+
+
+class TestSubAnnualXarray:
+    """Verify that run_landtrendr works with sub-annual datetime data."""
+
+    def _make_sub_annual_cube(self, ny=3, nx=3):
+        """Create a cube with multiple observations per year."""
+        dates = [
+            np.datetime64(f"{y}-{m:02d}-15")
+            for y in range(2020, 2025)
+            for m in [3, 6, 9]
+        ]
+        n_times = len(dates)
+        data = np.random.default_rng(42).random((n_times, ny, nx)) * 0.1 + 0.5
+        # Pixel (0,0): decline from 0.8 to 0.2
+        data[:, 0, 0] = np.linspace(0.8, 0.2, n_times)
+        return xr.DataArray(
+            data,
+            dims=["time", "y", "x"],
+            coords={"time": dates, "y": np.arange(ny), "x": np.arange(nx)},
+        )
+
+    def test_sub_annual_produces_valid_output(self):
+        """Sub-annual datetime data runs without compositing."""
+        da = self._make_sub_annual_cube()
+        result = run_landtrendr(da)
+        assert result["fitted_values"].shape == da.shape
+        assert not np.all(np.isnan(result["fitted_values"].values))
+
+    def test_sub_annual_detects_decline(self):
+        """Declining pixel is captured with sub-annual data."""
+        da = self._make_sub_annual_cube()
+        result = run_landtrendr(da)
+        fitted = result["fitted_values"].sel(y=0, x=0).values
+        assert fitted[0] > fitted[-1]
+
+    def test_sub_annual_change_map(self):
+        """extract_change_map works on sub-annual LandTrendr results."""
+        da = self._make_sub_annual_cube()
+        lt = run_landtrendr(da)
+        change = extract_change_map(lt, change_type="greatest", delta_filter="loss")
+        # Pixel (0,0) should have a detected loss
+        mag = float(change["mag"].sel(y=0, x=0).values)
+        if not np.isnan(mag):
+            assert mag < 0

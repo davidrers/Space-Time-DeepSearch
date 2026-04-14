@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
+from .landtrendr import _datetime_to_fractional_year
+
 
 def plot_change_map(change_ds, variable="mag", cmap="RdBu", title=None,
                     ax=None, figsize=(10, 8), vmin=None, vmax=None):
@@ -87,7 +89,7 @@ def plot_pixel_trajectory(lt_result, y, x, ax=None, figsize=(12, 4)):
     vertices = lt_result["is_vertex"].sel(y=y, x=x, method="nearest")
 
     if np.issubdtype(source.time.dtype, np.datetime64):
-        time_vals = source.time.dt.year.values
+        time_vals = _datetime_to_fractional_year(source.time.values)
     else:
         time_vals = source.time.values
 
