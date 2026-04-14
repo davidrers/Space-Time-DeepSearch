@@ -29,6 +29,9 @@ Thumbs.db
 # Notebook checkpoints
 .ipynb_checkpoints/
 
+# Built docs
+site/
+
 # Cache
 notebooks/cache/
 src/space_time_deepsearch/io/cache/
